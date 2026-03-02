@@ -42,9 +42,6 @@ func GetAlpsOrders(orderNo, token string) (ordResults []OrderResult, err error) 
 	params.Add("_", fmt.Sprintf("%d", timestamp))
 
 	targetURL := fmt.Sprintf("%s?%s", BASE_URL, params.Encode())
-
-	logger.Info("Requesting ALPS", "url", targetURL)
-
 	var req *http.Request
 	req, err = http.NewRequest("GET", targetURL, nil)
 	if err != nil {
@@ -67,8 +64,9 @@ func GetAlpsOrders(orderNo, token string) (ordResults []OrderResult, err error) 
 	code := resp.StatusCode
 	body, _ := io.ReadAll(resp.Body)
 
+	// 401 error -> refresh session id
 	if code != http.StatusOK {
-		err = fmt.Errorf("api returned status: %d", code)
+		err = fmt.Errorf("api returned status: %d, %s", code, string(body))
 		return
 	}
 

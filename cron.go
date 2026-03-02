@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/robfig/cron/v3"
 )
 
@@ -12,9 +13,7 @@ type CronJob struct {
 	Task     func() // 실제 실행할 함수
 }
 
-// TODO: nateon 알림으로 특정 시간동안 어떤 것이 연동되지 않았는지 톡
-
-func StartCronJobs() {
+func InitCronJobs() (err error) {
 	c := cron.New(cron.WithSeconds(), cron.WithChain(
 		cron.SkipIfStillRunning(cron.DefaultLogger),
 		cron.Recover(cron.DefaultLogger),
@@ -23,34 +22,90 @@ func StartCronJobs() {
 	jobList := []CronJob{
 		{
 			Name:     "SetInvoiceNumber",
-			Schedule: "*/5 * * * * *",
+			Schedule: "0 */2 * * * *",
 			Task:     CronSetInvoiceNumber,
+		},
+		{
+			Name:     "SetSessionID",
+			Schedule: "0 */15 * * * *",
+			Task:     CronSetSessionID,
+		},
+		{
+			Name:     "SendNateOnMsg",
+			Schedule: "0 0 */3 * * *",
+			Task:     CronSendNateOnMsg,
 		},
 	}
 
-	for _, j := range jobList {
-		job := j
-		_, err := c.AddFunc(job.Schedule, func() {
+	for _, job := range jobList {
+		_, err = c.AddFunc(job.Schedule, func() {
 			logger.Info("Cron Task Started", "jobName", job.Name)
 			job.Task()
 		})
 		if err != nil {
-			logger.Error("Cron Registration Failed", "jobName", job.Name)
+			logger.Error("Can Registration Failed", "jobName", job.Name)
+			err = errors.Wrap(err, "cron registration failed")
+			return
 		}
 	}
 
 	c.Start()
 	logger.Info("Cron Start")
+	return
 }
 
 func CronSetInvoiceNumber() {
-	orderNum := "20260224-0000497"
-	token := "eyJ0eXAiOiJKV1QiLCJyZWdEYXRlIjoxNzcyMzc4MzI4NjA4LCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE3NzIzODkxMjgsImFjY2Vzc1VzZXIiOnsidXNlcklkIjoiOTgyNzE4IiwidXNlck5hbWUiOiLso7zsi53tmozsgqwg7ZWc7LyA7Ja0IiwiZGVwdElkIjpudWxsLCJkZXB0TmFtZSI6bnVsbCwicm9sZXMiOm51bGwsInBlcm1pc3Npb25zIjpudWxsLCJhdXRoZW50aWNhdGlvblRpbWUiOjE3NzIzNzY1ODAzNDMsImFjY2Vzc1RpbWUiOjE3NzIzNzgzMjg2MDgsInN5c3RtSWQiOiIzIiwibWFjQWRkcmVzcyI6Im5vcm1hbC1icm93c2VyIiwibGdpbklwIjoiMjIxLjE1My4xMzQuMTUwIn19.OFb4gBJxLH5eN9UqJo1inMsItRBEpOtFXnsPkKZsl74"
-	data, err := GetAlpsOrders(orderNum, token)
+	ordersNum, err := GetOrderNums(OrderStatPrint)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to get data: %v (orderNum: %s)", err, orderNum))
+		logger.Error(fmt.Sprintf("failed to get ordersNum: %+v", err))
 		return
 	}
-	fmt.Println(data)
-	return
+
+	orderMap := make(map[string][]OrderResult)
+	for _, orderNum := range ordersNum {
+		var orderResults []OrderResult
+		orderResults, err = GetAlpsOrders(orderNum, alpsToken)
+		if err != nil {
+			// TODO: 네이트온 메시지 보내기
+			logger.Error(fmt.Sprintf("failed to get data: %v (orderNum: %s) skipped", err, orderNum))
+			continue
+		}
+		orderMap[orderNum] = orderResults
+	}
+
+	for orderNum, results := range orderMap {
+		if len(results) == 0 {
+			// TODO: 네이트온 메시지 보내기
+			logger.Error(fmt.Sprintf("empty order results (orderNum: %s)", orderNum))
+			continue
+		}
+
+		firstResult := results[0]
+		var cnt int64
+		cnt, err = UpdateOrderInvoice(orderNum, firstResult.InvNo)
+		if err != nil {
+			// TODO: 네이트온 메시지 보내기
+			logger.Error(fmt.Sprintf("failed to update delivery info: %+v (orderNum: %s) skipped", err, orderNum))
+			continue
+		}
+		if cnt == 0 {
+			// TODO: 네이트온 메시지 보내기
+			logger.Warn(fmt.Sprintf("No order found to update: %s", orderNum))
+			continue
+		}
+	}
+}
+
+func CronSetSessionID() {
+	var err error
+	alpsToken, err = GetLatestAlpsToken()
+	if err != nil {
+		logger.Error(fmt.Sprintf("failed to refresh session id: %+v", err))
+		return
+	}
+}
+
+// TODO: nateon 알림으로 특정 시간동안 어떤 것이 연동되지 않았는지 톡보내는 Cron 작업 추가 (작업 보고용으로 남기면 좋을듯?)
+func CronSendNateOnMsg() {
+
 }
