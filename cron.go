@@ -23,7 +23,7 @@ func InitCronJobs() (err error) {
 		{
 			Name: "SetInvoiceNumber",
 			//Schedule: "0 */2 * * * *",
-			Schedule: "*/5 * * * * *",
+			Schedule: "0 */2 * * * *",
 			Task:     CronSetInvoiceNumber,
 		},
 		{
@@ -62,38 +62,41 @@ func CronSetInvoiceNumber() {
 		return
 	}
 
-	orderMap := make(map[string][]OrderResult)
-	for _, orderNum := range ordersNum {
-		var orderResults []OrderResult
-		orderResults, err = GetAlpsOrders(orderNum, alpsToken)
-		if err != nil {
-			// TODO: 네이트온 메시지 보내기
-			logger.Error(fmt.Sprintf("failed to get data: %v (orderNum: %s) skipped", err, orderNum))
-			continue
-		}
-		orderMap[orderNum] = orderResults
+	baseUrls := []string{
+		"https://pid.alps.llogis.com:18210/pid/ftr/pacltrc/inner/popinvrgstinfo",
+		"https://pid.alps.llogis.com:18210/pid/ftr/pacltrc/inner/popinvrsrvinfo",
 	}
 
-	for orderNum, results := range orderMap {
-		if len(results) == 0 {
+	for _, orderNum := range ordersNum {
+		var allResults []OrderResult
+		for _, url := range baseUrls {
+			results, err := GetAlpsOrders(url, orderNum, alpsToken)
+			if err != nil {
+				logger.Error(fmt.Sprintf("API call failed: %v (url: %s, orderNum: %s)", err, url, orderNum))
+				continue
+			}
+			allResults = append(allResults, results...)
+		}
+
+		if len(allResults) == 0 {
 			// TODO: 네이트온 메시지 보내기
-			logger.Error(fmt.Sprintf("empty order results (orderNum: %s)", orderNum))
+			logger.Error(fmt.Sprintf("empty order results after checking all URLs (orderNum: %s)", orderNum))
 			continue
 		}
 
-		firstResult := results[0]
-		var cnt int64
-		cnt, err = UpdateOrderInvoice(orderNum, firstResult.InvNo)
+		firstResult := allResults[0]
+		cnt, err := UpdateOrderInvoice(orderNum, firstResult.InvNo)
 		if err != nil {
-			// TODO: 네이트온 메시지 보내기
-			logger.Error(fmt.Sprintf("failed to update delivery info: %+v (orderNum: %s) skipped", err, orderNum))
+			logger.Error(fmt.Sprintf("failed to update delivery info: %+v (orderNum: %s)", err, orderNum))
 			continue
 		}
+
 		if cnt == 0 {
-			// TODO: 네이트온 메시지 보내기
 			logger.Warn(fmt.Sprintf("No order found to update: %s", orderNum))
 			continue
 		}
+
+		logger.Info(fmt.Sprintf("Success update: %s -> %s", orderNum, firstResult.InvNo))
 	}
 }
 

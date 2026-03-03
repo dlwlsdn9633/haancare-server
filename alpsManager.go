@@ -31,7 +31,7 @@ type OrderResult struct {
 	JobCustNm string `json:"jobCustNm"` // 고객명
 }
 
-func GetAlpsOrders(orderNo, token string) (ordResults []OrderResult, err error) {
+func GetAlpsOrders(baseUrl, orderNo, token string) (ordResults []OrderResult, err error) {
 	filterData := OrderSearchFilter{
 		SrchOrdNo:  orderNo,
 		SrchCustCd: HAANCARE_CODE,
@@ -43,7 +43,7 @@ func GetAlpsOrders(orderNo, token string) (ordResults []OrderResult, err error) 
 	params.Add("filter", string(filterJSON))
 	//params.Add("_", fmt.Sprintf("%d", timestamp))
 
-	targetURL := fmt.Sprintf("%s?%s", BASE_URL, params.Encode())
+	targetURL := fmt.Sprintf("%s?%s", baseUrl, params.Encode())
 	var req *http.Request
 	req, err = http.NewRequest("GET", targetURL, nil)
 	if err != nil {
