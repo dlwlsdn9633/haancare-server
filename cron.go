@@ -21,8 +21,9 @@ func InitCronJobs() (err error) {
 
 	jobList := []CronJob{
 		{
-			Name:     "SetInvoiceNumber",
-			Schedule: "0 */2 * * * *",
+			Name: "SetInvoiceNumber",
+			//Schedule: "0 */2 * * * *",
+			Schedule: "*/5 * * * * *",
 			Task:     CronSetInvoiceNumber,
 		},
 		{

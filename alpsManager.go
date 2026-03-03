@@ -6,13 +6,15 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"time"
 )
 
+// 2026.03.03 popinvrgstinfo
+// 2026.03.04 popinvrsrvinfo
 const (
 	HAANCARE_CODE = "982718"
-	BASE_URL      = "https://pid.alps.llogis.com:18210/pid/ftr/pacltrc/inner/popinvrgstinfo"
-	REFERER       = "https://partner.alps.llogis.com/"
+	// BASE_URL      = "https://pid.alps.llogis.com:18210/pid/ftr/pacltrc/inner/popinvrgstinfo"
+	BASE_URL = "https://pid.alps.llogis.com:18210/pid/ftr/pacltrc/inner/popinvrsrvinfo"
+	REFERER  = "https://partner.alps.llogis.com/"
 )
 
 type OrderSearchFilter struct {
@@ -34,12 +36,12 @@ func GetAlpsOrders(orderNo, token string) (ordResults []OrderResult, err error) 
 		SrchOrdNo:  orderNo,
 		SrchCustCd: HAANCARE_CODE,
 	}
-	timestamp := time.Now().UnixNano() / int64(time.Millisecond)
+	//timestamp := time.Now().UnixNano() / int64(time.Millisecond)
 	filterJSON, _ := json.Marshal(filterData)
 
 	params := url.Values{}
 	params.Add("filter", string(filterJSON))
-	params.Add("_", fmt.Sprintf("%d", timestamp))
+	//params.Add("_", fmt.Sprintf("%d", timestamp))
 
 	targetURL := fmt.Sprintf("%s?%s", BASE_URL, params.Encode())
 	var req *http.Request
