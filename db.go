@@ -18,6 +18,14 @@ var (
 	db *sql.DB
 )
 
+type Delivery struct {
+	OrderNum   string    `db:"o_num" json:"orderNum"`
+	OrderState int       `db:"o_stat" json:"orderState"`
+	Invoice    *string   `db:"o_no" json:"invoice"`
+	Name       string    `db:"o_nm" json:"name"`
+	CreatedAt  time.Time `db:"o_regdt" json:"createdAt"`
+}
+
 func InitDB() (err error) {
 	dsn := config.GetDsn()
 
@@ -135,5 +143,47 @@ WHERE o_num = ?
 		err = errors.Wrap(err, "failed to get rows affected")
 		return
 	}
+	return
+}
+
+func GetDeliverys(orderStat OrderStat) (deliveries []Delivery, err error) {
+	query := fmt.Sprintf(`
+SELECT 
+	o_num,
+	o_stat,
+	o_no,
+	o_nm,
+	o_regdt
+FROM %s
+	`, TblDelivery)
+
+	var args []any
+
+	switch orderStat {
+	case OrderStatAll:
+		// pass
+	default:
+		query += ` WHERE o_stat = ?`
+		args = append(args, orderStat)
+	}
+
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		err = errors.WithStack(err)
+		return
+	}
+	defer rows.Close()
+
+	deliveries = []Delivery{}
+	for rows.Next() {
+		var d Delivery
+		err = rows.Scan(&d.OrderNum, &d.OrderState, &d.Invoice, &d.Name, &d.CreatedAt)
+		if err != nil {
+			err = errors.WithStack(err)
+			return
+		}
+		deliveries = append(deliveries, d)
+	}
+
 	return
 }

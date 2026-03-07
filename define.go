@@ -8,6 +8,7 @@ const (
 type OrderStat int
 
 const (
-	OrderStatPrint   OrderStat = iota + 1
-	OrderStatPending OrderStat = iota + 4
+	OrderStatAll     OrderStat = 0
+	OrderStatPrint   OrderStat = 1
+	OrderStatPending OrderStat = 5
 )
