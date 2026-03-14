@@ -41,6 +41,11 @@ func main() {
 	e := echo.New()
 	e.HideBanner = true
 
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"http://localhost:3000"},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
+	}))
+	
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 

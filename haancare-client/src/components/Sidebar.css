@@ -1,0 +1,135 @@
+.sidebar_container {
+  display: flex;
+  flex-direction: column;
+  width: 120px;
+  background-color: #334155;
+  color: #e2e8f0;
+  min-height: 100vh;
+  flex-shrink: 0;
+  transition: width 0.25s ease;
+}
+
+.sidebar_logo {
+  padding: 10px;
+  text-align: center;
+  border-bottom: 1px solid #475569;
+  background: #fff;
+}
+
+.sidebar_logo img {
+  max-width: 90%;
+  height: auto;
+}
+
+.sidebar_nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 15px 0;
+}
+
+.sidebar_nav li a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar_nav li a:hover {
+  background-color: #475569;
+  color: #fff;
+}
+
+.sidebar_nav li.active a {
+  background-color: #c21223;
+  color: #fff;
+  border-left: 2px solid #fff;
+  padding-left: 14px;
+}
+
+.sidebar_nav li a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  text-decoration: none;
+  color: #cbd5e1;
+  font-weight: 600;
+  transition:
+    background-color 0.2s ease-in-out,
+    color 0.2s ease-in-out;
+  font-size: 0.95rem;
+}
+
+.menu_icon {
+  font-size: 18px;
+  min-width: 18px;
+}
+
+.sidebar_container {
+  transition: width 0.25s ease;
+}
+
+.sidebar_container.collapsed {
+  width: 50px;
+}
+
+.sidebar_container.collapsed .menu_text {
+  display: none;
+}
+
+.sidebar_container.collapsed .sidebar_nav li a {
+  justify-content: center;
+  padding: 10px 0;
+}
+
+.sidebar_container.collapsed .sidebar_logo {
+  display: none;
+}
+
+.sidebar_toggle {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 8px;
+  align-self: flex-end;
+}
+
+@media (max-width: 1000px) {
+  .sidebar_container {
+    width: 100px;
+  }
+
+  .sidebar_logo {
+    padding: 5px;
+  }
+
+  .sidebar_nav li a {
+    padding: 8px 10px;
+    font-size: 0.7rem;
+    text-align: center;
+  }
+
+  .sidebar_nav li.active a {
+    padding-left: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar_container {
+    width: 80px;
+  }
+
+  /* .sidebar_logo img {
+    max-width: 80%;
+  } */
+
+  .sidebar_nav li a {
+    padding: 6px 5px;
+    font-size: 0.5rem;
+    word-break: break-word;
+  }
+  .sidebar_nav li.active a {
+    padding-left: 2px;
+  }
+}
