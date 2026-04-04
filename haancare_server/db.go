@@ -85,7 +85,7 @@ LIMIT 1
 `, TblAlpsTokens)
 	err = db.QueryRow(query).Scan(&token)
 	if err != nil {
-		err = errors.Wrap(err, "failed to get latest token")
+		err = errors.Wrap(err, "error while getting token")
 		return
 	}
 	return

@@ -20,3 +20,7 @@ func ResBadRequest(c echo.Context, err string) error {
 func ResInternalServerError(c echo.Context, err string) error {
 	return c.JSON(http.StatusInternalServerError, map[string]interface{}{"err": err})
 }
+
+func IsNullOrEmpty(strPtr *string) bool {
+	return strPtr == nil || *strPtr == ""
+}

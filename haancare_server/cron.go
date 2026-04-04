@@ -102,7 +102,7 @@ func CronSetInvoiceNumber() {
 
 func CronSetSessionID() {
 	var err error
-	alpsToken, err = GetLatestAlpsToken()
+	alpsToken, err = GetToken()
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to refresh session id: %+v", err))
 		return

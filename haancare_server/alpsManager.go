@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+
+	"github.com/pkg/errors"
 )
 
 // 2026.03.03 popinvrgstinfo
@@ -31,7 +34,71 @@ type OrderResult struct {
 	JobCustNm string `json:"jobCustNm"` // 고객명
 }
 
+type LoginResponse struct {
+	Result      bool   `json:"result"`
+	AccessToken string `json:"accessToken"`
+}
+
+func GetToken() (token string, err error) {
+	targetURL := "https://partner.alps.llogis.com/auth/login"
+	payload := map[string]interface{}{
+		"principal":  config.HanncareId,
+		"credential": config.HaancarePw,
+		"systmId":    "3",
+		"macAddress": "normal-browser",
+	}
+
+	reqBody, err := json.Marshal(payload)
+	if err != nil {
+		err = errors.WithStack(err)
+		return
+	}
+
+	req, err := http.NewRequest(http.MethodPost, targetURL, bytes.NewBuffer(reqBody))
+	if err != nil {
+		err = errors.WithStack(err)
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	req.Header.Set("Referer", REFERER)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		err = errors.WithStack(err)
+		return
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		err = errors.WithStack(err)
+		return
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		err = errors.Wrapf(err, "status: %d, response: %v", resp.StatusCode, respBody)
+		return
+	}
+
+	var loginResp LoginResponse
+	if err = json.Unmarshal(respBody, &loginResp); err != nil {
+		err = errors.WithStack(err)
+		return
+	}
+
+	if !loginResp.Result {
+		err = errors.Wrapf(err, "login failed - response: %+v", respBody)
+		return
+	}
+	token = loginResp.AccessToken
+	return
+}
+
 func GetAlpsOrders(baseUrl, orderNo, token string) (ordResults []OrderResult, err error) {
+
 	filterData := OrderSearchFilter{
 		SrchOrdNo:  orderNo,
 		SrchCustCd: HAANCARE_CODE,
@@ -47,7 +114,7 @@ func GetAlpsOrders(baseUrl, orderNo, token string) (ordResults []OrderResult, er
 	var req *http.Request
 	req, err = http.NewRequest("GET", targetURL, nil)
 	if err != nil {
-		err = fmt.Errorf("failed to request: %w", err)
+		err = errors.Wrap(err, "error while requesting")
 		return
 	}
 
@@ -58,7 +125,7 @@ func GetAlpsOrders(baseUrl, orderNo, token string) (ordResults []OrderResult, er
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		err = fmt.Errorf("api call error: %w", err)
+		err = errors.Wrap(err, "api call error")
 		return
 	}
 	defer resp.Body.Close()
@@ -68,12 +135,12 @@ func GetAlpsOrders(baseUrl, orderNo, token string) (ordResults []OrderResult, er
 
 	// 401 error -> refresh session id
 	if code != http.StatusOK {
-		err = fmt.Errorf("api returned status: %d, %s", code, string(body))
+		err = errors.Wrapf(err, "error status - %d, %s", code, string(body))
 		return
 	}
 
 	if err = json.Unmarshal(body, &ordResults); err != nil {
-		err = fmt.Errorf("unmarshal error: %w", err)
+		err = errors.Wrapf(err, "%v", body)
 		return
 	}
 	return

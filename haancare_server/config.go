@@ -14,6 +14,8 @@ type Config struct {
 	DBHost     string
 	DBPort     string
 	DBName     string
+	HanncareId string
+	HaancarePw string
 }
 
 var (
@@ -32,6 +34,8 @@ func InitConfig() (err error) {
 		DBHost:     os.Getenv("DB_HOST"),
 		DBPort:     os.Getenv("DB_PORT"),
 		DBName:     os.Getenv("DB_NAME"),
+		HanncareId: os.Getenv("HAANCARE_ID"),
+		HaancarePw: os.Getenv("HAANCARE_PW"),
 	}
 	return
 }
